@@ -1,0 +1,13 @@
+{
+  "name": "drupal/commerce_checkout_api",
+  "type": "drupal-module",
+  "description": "Demo",
+  "keywords": ["Drupal", "Commerce"],
+  "license": "GPL-2.0+",
+  "homepage": "https://github.com/mglaman/commerce_checkout_api",
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/commerce": "^2.0"
+  }
+}
+
