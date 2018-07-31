@@ -1,0 +1,18 @@
+services:
+  commerce_checkout_api.normalizer.price:
+    class: Drupal\commerce_checkout_api\Normalizer\PriceItemNormalizer
+    tags:
+      - { name: normalizer, priority: 9 }
+  commerce_checkout_api.normalizer.field_item:
+    class: Drupal\commerce_checkout_api\Normalizer\FieldItemNormalizer
+    tags:
+      - { name: normalizer, priority: 8 }
+  commerce_checkout_api.normalizer.field:
+    class: Drupal\commerce_checkout_api\Normalizer\FieldNormalizer
+    tags:
+      - { name: normalizer, priority: 9 }
+  commerce_checkout_api.normalizer.order_items:
+    class: Drupal\commerce_checkout_api\Normalizer\OrderItemsNormalizer
+    arguments: ['@entity.repository']
+    tags:
+      - { name: normalizer, priority: 9 }

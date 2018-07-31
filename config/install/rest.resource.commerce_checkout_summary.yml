@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  module:
+  - commerce_checkout_api
+  - serialization
+  - user
+id: commerce_checkout_summary
+plugin_id: commerce_checkout_summary
+granularity: resource
+configuration:
+  methods:
+  - POST
+  formats:
+  - json
+  authentication:
+  - cookie
