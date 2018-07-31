@@ -125,16 +125,14 @@ abstract class CheckoutResourceBase extends ResourceBase {
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = NULL;
     foreach ($body['purchasedEntities'] as $purchased_entity_data) {
-      // @todo: Determine from the purchased entity data.
-      $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
       $purchased_entity = $entity_repository->loadEntityByUuid('commerce_product_variation', $purchased_entity_data['id']);
       if (!$purchased_entity || !$purchased_entity instanceof PurchasableEntityInterface) {
         continue;
       }
 
-      $order_item = $this->orderItemStorage->createFromPurchasableEntity($purchased_entity, [
-        'quantity' => 1,
-      ]);
+      $order_item = $this->orderItemStorage->createFromPurchasableEntity($purchased_entity);
+      // Manually set the quantity to also trigger a total price calculation.
+      $order_item->setQuantity($purchased_entity_data['quantity']);
 
       $store = $this->selectStore($purchased_entity);
       $order_type_id = $this->chainOrderTypeResolver->resolve($order_item);
