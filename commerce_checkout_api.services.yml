@@ -16,3 +16,23 @@ services:
     arguments: ['@entity.repository']
     tags:
       - { name: normalizer, priority: 9 }
+
+  commerce_checkout_api.normalize.checkout_validator_constraint:
+    class: Drupal\commerce_checkout_api\Normalizer\CheckoutValidatorConstraintNormalizer
+    tags:
+    - { name: normalizer, priority: 9 }
+
+  commerce_checkout_api.email_checkout_validator:
+    class: Drupal\commerce_checkout_api\CheckoutValidator\EmailCheckoutValidator
+    tags:
+    - { name: commerce_checkout.checkout_validator }
+
+  commerce_checkout_api.billing_checkout_validator:
+    class: Drupal\commerce_checkout_api\CheckoutValidator\BillingInformationCheckoutValidator
+    tags:
+    - { name: commerce_checkout.checkout_validator }
+
+  commerce_checkout_api.shipping_checkout_validator:
+    class: Drupal\commerce_checkout_api\CheckoutValidator\ShippingInformationCheckoutValidator
+    tags:
+    - { name: commerce_checkout.checkout_validator }

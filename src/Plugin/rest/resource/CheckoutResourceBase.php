@@ -3,10 +3,14 @@
 namespace Drupal\commerce_checkout_api\Plugin\rest\resource;
 
 use Drupal\commerce\PurchasableEntityInterface;
+use Drupal\commerce_checkout\CheckoutOrderManagerInterface;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderType;
 use Drupal\commerce_order\Resolver\ChainOrderTypeResolverInterface;
 use Drupal\commerce_store\CurrentStoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\profile\Entity\Profile;
 use Drupal\rest\Plugin\ResourceBase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -47,11 +51,31 @@ abstract class CheckoutResourceBase extends ResourceBase {
 
   protected $currentUser;
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, EntityTypeManagerInterface $entity_type_manager, ChainOrderTypeResolverInterface $chain_order_type_resolver, CurrentStoreInterface $current_store, AccountInterface $account) {
+  protected $checkoutOrderManager;
+
+  /**
+   * CheckoutResourceBase constructor.
+   *
+   * @param array $configuration
+   * @param $plugin_id
+   * @param $plugin_definition
+   * @param array $serializer_formats
+   * @param \Psr\Log\LoggerInterface $logger
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\commerce_checkout\CheckoutOrderManagerInterface $checkout_order_manager
+   * @param \Drupal\commerce_order\Resolver\ChainOrderTypeResolverInterface $chain_order_type_resolver
+   * @param \Drupal\commerce_store\CurrentStoreInterface $current_store
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, array $serializer_formats, LoggerInterface $logger, EntityTypeManagerInterface $entity_type_manager, CheckoutOrderManagerInterface $checkout_order_manager, ChainOrderTypeResolverInterface $chain_order_type_resolver, CurrentStoreInterface $current_store, AccountInterface $account) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger);
     $this->entityTypeManager = $entity_type_manager;
     $this->orderItemStorage = $entity_type_manager->getStorage('commerce_order_item');
     $this->orderStorage = $entity_type_manager->getStorage('commerce_order');
+    $this->checkoutOrderManager = $checkout_order_manager;
     $this->chainOrderTypeResolver = $chain_order_type_resolver;
     $this->currentStore = $current_store;
     $this->currentUser = $account;
@@ -68,6 +92,7 @@ abstract class CheckoutResourceBase extends ResourceBase {
       $container->getParameter('serializer.formats'),
       $container->get('logger.factory')->get('rest'),
       $container->get('entity_type.manager'),
+      $container->get('commerce_checkout.checkout_order_manager'),
       $container->get('commerce_order.chain_order_type_resolver'),
       $container->get('commerce_store.current_store'),
       $container->get('current_user')
@@ -130,7 +155,9 @@ abstract class CheckoutResourceBase extends ResourceBase {
         continue;
       }
 
-      $order_item = $this->orderItemStorage->createFromPurchasableEntity($purchased_entity);
+      $order_item = $this->orderItemStorage->createFromPurchasableEntity($purchased_entity, [
+        'order_item_id' => 9999,
+      ]);
       // Manually set the quantity to also trigger a total price calculation.
       $order_item->setQuantity($purchased_entity_data['quantity']);
 
@@ -139,6 +166,7 @@ abstract class CheckoutResourceBase extends ResourceBase {
       // The first order item dictates the order type and store.
       if (!$order) {
         $order = $this->orderStorage->create([
+          'order_id' => 9999,
           'type' => $order_type_id,
           'store_id' => $store->id(),
           'uid' => $this->currentUser->id(),
@@ -155,11 +183,31 @@ abstract class CheckoutResourceBase extends ResourceBase {
 
       $order->get('order_items')->appendItem($order_item);
     }
-    if ($order) {
-      $order->recalculateTotalPrice();
+    if (!$order) {
+      return $order;
     }
+    $order->recalculateTotalPrice();
+
+    // @todo unblock shipping.
+    // Shipping requires order and order item IDs.
+    //$this->calculateShipments($order);
 
     return $order;
+  }
+
+  protected function calculateShipments(OrderInterface $order) {
+    $order_type = OrderType::load($order->bundle());
+    $shipping_settings = $order_type->getThirdPartySetting('commerce_shipping', 'shipment_type', NULL);
+    if ($shipping_settings) {
+      $shipping_profile = Profile::create([
+        'type' => 'customer',
+        'uid' => 0,
+      ]);
+      // @todo Inject this conditionally (if commerce_shipping is enabled).
+      $packer_manager = \Drupal::getContainer()->get('commerce_shipping.packer_manager');
+      $shipments = $packer_manager->pack($order, $shipping_profile);
+      $order->get('shipments')->setValue($shipments);
+    }
   }
 
   /**
