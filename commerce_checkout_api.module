@@ -25,7 +25,7 @@ function commerce_checkout_api_entity_field_access($operation, FieldDefinitionIn
         'order_number',
         'store_id',
         // Allow after https://www.drupal.org/project/commerce/issues/2916252.
-        // 'adjustments',
+        'adjustments',
         'total_price',
         'order_items',
       ];

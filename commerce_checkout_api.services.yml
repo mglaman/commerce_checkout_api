@@ -22,6 +22,16 @@ services:
     tags:
     - { name: normalizer, priority: 9 }
 
+  commerce_checkout_api.normalize.adjustment:
+    class: Drupal\commerce_checkout_api\Normalizer\AdjustmentNormalizer
+    tags:
+    - { name: normalizer, priority: 9 }
+
+  commerce_checkout_api.normalize.price:
+    class: Drupal\commerce_checkout_api\Normalizer\PriceNormalizer
+    tags:
+    - { name: normalizer, priority: 9 }
+
   commerce_checkout_api.email_checkout_validator:
     class: Drupal\commerce_checkout_api\CheckoutValidator\EmailCheckoutValidator
     tags:

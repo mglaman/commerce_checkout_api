@@ -156,7 +156,6 @@ abstract class CheckoutResourceBase extends ResourceBase {
       }
 
       $order_item = $this->orderItemStorage->createFromPurchasableEntity($purchased_entity, [
-        'order_item_id' => 9999,
       ]);
       // Manually set the quantity to also trigger a total price calculation.
       $order_item->setQuantity($purchased_entity_data['quantity']);
@@ -166,7 +165,6 @@ abstract class CheckoutResourceBase extends ResourceBase {
       // The first order item dictates the order type and store.
       if (!$order) {
         $order = $this->orderStorage->create([
-          'order_id' => 9999,
           'type' => $order_type_id,
           'store_id' => $store->id(),
           'uid' => $this->currentUser->id(),
@@ -181,17 +179,55 @@ abstract class CheckoutResourceBase extends ResourceBase {
         }
       }
 
+      $order_item->enforceIsNew(TRUE);
       $order->get('order_items')->appendItem($order_item);
     }
     if (!$order) {
       return $order;
     }
-    $order->recalculateTotalPrice();
+
+    if (isset($body['email'])) {
+      $order->setEmail($body['email']);
+    }
+    if (isset($body['billing'])) {
+      $billing_profile = $this->entityTypeManager->getStorage('profile')->create([
+        'type' => 'customer',
+        'uid' => 0,
+        'address' => [
+          'country_code' => $body['billing']['countryCode'],
+          'postal_code' => $body['billing']['postalCode'],
+          'locality' => $body['billing']['locality'],
+          'address_line1' => $body['billing']['addressLine1'],
+          'address_line2' => $body['billing']['addressLine2'],
+          'administrative_area' => $body['billing']['administrativeArea'],
+          'given_name' => '',
+          'family_name' => '',
+        ],
+      ]);
+      $order->setBillingProfile($billing_profile);
+    }
 
     // @todo unblock shipping.
     // Shipping requires order and order item IDs.
     //$this->calculateShipments($order);
 
+    $order->recalculateTotalPrice();
+
+    // @todo inject
+    \Drupal::getContainer()->get('commerce_order.order_refresh')->refresh($order);
+
+    // @todo fix: having new order items seems to break the order total
+    // after the refresh, the total price can no longer be calculated.
+    // That is because \Drupal\commerce_order\Entity\Order::getItems uses
+    // ::referencedEntities(). They get saved, but the field property of
+    // target_id is not set to the ID and remains null. For the method
+    // \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::hasNewEntity
+    // breaks.
+    foreach ($order->get('order_items') as $entity_reference_item) {
+      // @todo order refresh should not save if the order item is new?
+      $entity_reference_item->entity->enforceIsNew(TRUE);
+    }
+    $order->recalculateTotalPrice();
     return $order;
   }
 
