@@ -207,6 +207,18 @@ abstract class CheckoutResourceBase extends ResourceBase {
       $order->setBillingProfile($billing_profile);
     }
 
+    if (isset($body['couponCode'])) {
+      /** @var \Drupal\commerce_promotion\CouponStorageInterface $coupon_storage */
+      $coupon_storage = \Drupal::entityTypeManager()->getStorage('commerce_promotion_coupon');
+      $coupon = $coupon_storage->loadEnabledByCode($body['couponCode']);
+      if ($coupon) {
+        // @todo The PromotionOrderProcessor will remove coupons during refresh
+        // This removes any change to report it as a violation.
+        // Perhaps coupon validation needs its own callback.
+        $order->get('coupons')->appendItem($coupon);
+      }
+    }
+
     // @todo unblock shipping.
     // Shipping requires order and order item IDs.
     //$this->calculateShipments($order);

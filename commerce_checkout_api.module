@@ -28,6 +28,7 @@ function commerce_checkout_api_entity_field_access($operation, FieldDefinitionIn
         'adjustments',
         'total_price',
         'order_items',
+        'coupons',
       ];
     }
     elseif ($entity_type_id == 'commerce_order_item') {
