@@ -223,8 +223,6 @@ abstract class CheckoutResourceBase extends ResourceBase {
     // Shipping requires order and order item IDs.
     //$this->calculateShipments($order);
 
-    $order->recalculateTotalPrice();
-
     // @todo inject
     \Drupal::getContainer()->get('commerce_order.order_refresh')->refresh($order);
 
