@@ -5,7 +5,7 @@ dependencies:
   - commerce_checkout_api
   - serialization
   - user
-id: commerce_checkout_summary
+id: commerce_checkout_finalize
 plugin_id: commerce_checkout_finalize
 granularity: resource
 configuration:
